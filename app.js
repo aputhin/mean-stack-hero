@@ -3,6 +3,8 @@ const path = require('path');
 const routes = require('./api/routes');
 const bodyParser = require('body-parser');
 
+require('./api/data/dbconnection.js').open();
+
 const app = express();
 
 app.set('port', 3000);

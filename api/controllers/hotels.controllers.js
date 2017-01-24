@@ -1,7 +1,13 @@
+const dbconn = require('../data/dbconnection.js');
 const data = require('../data/hotel-data.json');
+const ObjectId = require('mongodb').ObjectId;
+
 
 module.exports.getAll = (req, res) => {
-  let offset = 0,
+  const db = dbconn.get();
+  const collection = db.collection('hotels');
+
+  var offset = 0,
       count = 5;
 
   if (req.query && req.query.offset) {
@@ -12,28 +18,56 @@ module.exports.getAll = (req, res) => {
     count = parseInt(req.query.count, 10);
   }
 
-  let returnData = data.slice(offset, offset + count);
-
-  res
-    .status(200)
-    .json({ returnData });
+  collection
+    .find({})
+    .skip(offset)
+    .limit(count)
+    .toArray((err, docs) => {
+      res
+        .status(200)
+        .json(docs);
+    });
 };
 
 module.exports.get = (req, res) => {
+  const db = dbconn.get();
+  const collection = db.collection('hotels');
+
   let id = req.params.id;
-  let hotel = data[id];
 
-  if (hotel === undefined) {
-    return res.status(422).send();
-  } 
+  collection
+    .findOne({
+      _id: ObjectId(id)
+    }, (err, hotel) => {
+      if (err) {
+        return res.status(422).send();
+      }
+      res
+        .status(202)
+        .json({ hotel });
+    });
 
-  return res
-    .status(202)
-    .json({ hotel });
+  
 };
 
 module.exports.create = (req, res) => {
-  res
-    .status(200)
-    .json(req.body);
+  const db = dbconn.get();
+  const collection = db.collection('hotels');
+  var hotel;
+
+  if (!(req.body && req.body.name && req.body.stars)) {
+    return res
+      .status(400)
+      .json({ message: "Required data missing form body" });
+  }
+
+  hotel = req.body;
+  hotel.stars = parseInt(req.body.stars, 10);
+
+  collection.insertOne(hotel, (err, response) => {
+    return res
+      .status(201)
+      .json( response.ops );
+  });
+
 };
