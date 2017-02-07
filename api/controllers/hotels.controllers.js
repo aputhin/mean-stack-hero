@@ -1,14 +1,50 @@
-const dbconn = require('../data/dbconnection.js');
-const data = require('../data/hotel-data.json');
-const ObjectId = require('mongodb').ObjectId;
+const mongoose = require('mongoose');
+const Hotel = mongoose.model('Hotel');
+
+const runGeoQuery = (req, res) => {
+  var lng = parseFloat(req.query.lng),
+      lat = parseFloat(req.query.lat);
+
+  if (isNaN(lng) || isNaN(lat)) {
+    res
+      .status(400)
+      .json({
+        message: 'lng and lat should be numbers'
+      });
+    return;
+  }
+
+  var point = {
+    type: "Point",
+    coordinates: [lng, lat]
+  };
+
+  const options = {
+    spherical: true,
+    maxDistance: 2000,
+    num: 5
+  };
+
+  return Hotel
+    .geoNear(point, options, (err, res, stats) => {
+      if (err) {
+        res.status(500).json(err);
+        return;
+      }
+      res.status(200).json(stats);
+    });
+}
 
 
 module.exports.getAll = (req, res) => {
-  const db = dbconn.get();
-  const collection = db.collection('hotels');
+
+  if (req.query && req.query.lat && req.query.lng) {
+    return runGeoQuery(req, req);
+  }
 
   var offset = 0,
-      count = 5;
+      count = 5,
+      maxCount = 50;
 
   if (req.query && req.query.offset) {
     offset = parseInt(req.query.offset, 10);
@@ -18,56 +54,130 @@ module.exports.getAll = (req, res) => {
     count = parseInt(req.query.count, 10);
   }
 
-  collection
+  if (isNaN(offset) || isNaN(count)) {
+    res
+      .status(400)
+      .json({
+        message: 'count and offset should be numbers'
+      });
+    return;
+  }
+
+  if (count > maxCount) {
+    res
+      .status(400)
+      .json({
+        message: 'count limit of ' + maxCount + ' exceeded'
+      });
+    return;
+  }
+
+  Hotel
     .find({})
     .skip(offset)
     .limit(count)
-    .toArray((err, docs) => {
-      res
-        .status(200)
-        .json(docs);
+    .exec((err, hotels) => {
+      if (err) {
+        return res.status(500).json(err);
+      }
+      return res.status(200).json(hotels);
     });
 };
 
 module.exports.get = (req, res) => {
-  const db = dbconn.get();
-  const collection = db.collection('hotels');
-
   let id = req.params.id;
 
-  collection
-    .findOne({
-      _id: ObjectId(id)
-    }, (err, hotel) => {
+  Hotel
+    .findById(id)
+    .exec((err, hotel) => {
       if (err) {
-        return res.status(422).send();
+        return res.status(500).json(err);
       }
-      res
-        .status(202)
-        .json({ hotel });
+      if (!hotel) {
+        return res.status(404).json({ message: 'Hotel ID not found' });
+      }
+      res.status(200).json({ hotel });
     });
-
-  
 };
 
-module.exports.create = (req, res) => {
-  const db = dbconn.get();
-  const collection = db.collection('hotels');
-  var hotel;
-
-  if (!(req.body && req.body.name && req.body.stars)) {
-    return res
-      .status(400)
-      .json({ message: "Required data missing form body" });
+const _splitArray = (input) => {
+  if (input && input.length > 0) {
+    return input.split(";");
   }
+  return [];
+}
 
-  hotel = req.body;
-  hotel.stars = parseInt(req.body.stars, 10);
-
-  collection.insertOne(hotel, (err, response) => {
-    return res
-      .status(201)
-      .json( response.ops );
+module.exports.create = (req, res) => {
+  
+  Hotel.create({
+    name: req.body.name,
+    description: req.body.description,
+    stars: parseInt(req.body.stars, 10),
+    services: _splitArray(req.body.services),
+    photos: _splitArray(req.body.photos),
+    currency: req.body.currency,
+    location: {
+      address: req.body.address,
+      coordinates: [
+        parseFloat(req.body.lng),
+        parseFloat(req.body.lat)
+      ]
+    }
+  }, (err, hotel) => {
+    if (err) {
+      return res.status(500).json(err);
+    }
+    return res.status(201).json({ hotel });
   });
 
 };
+
+module.exports.update = (req, res) => {
+  let id = req.params.id;
+
+  Hotel
+    .findById(id)
+    .select('-reviews -rooms')
+    .exec((err, hotel) => {
+      if (err) {
+        return res.status(500).json(err);
+      }
+      if (!hotel) {
+        return res.status(404).json({ message: 'Hotel ID not found' });
+      }
+      hotel.name = req.body.name;
+      hotel.description = req.body.description;
+      hotel.stars = parseInt(req.body.stars, 10);
+      hotel.services = _splitArray(req.body.services);
+      hotel.photos = _splitArray(req.body.photos);
+      hotel.currency = req.body.currency;
+      hotel.location = {
+        address: req.body.address,
+        coordinates: [
+          parseFloat(req.body.lng),
+          parseFloat(req.body.lat)
+        ]
+      };
+
+      hotel.save((err, hotel) => {
+        if (err) {
+          return res.status(500).json(err);
+        }
+        return res.status(204).json();
+      });
+    });
+  
+}
+
+module.exports.delete = (req, res) => {
+  let id = req.params.id;
+
+  Hotel
+    .findByIdAndRemove(id)
+    .exec((err, hotel) => {
+      if (err) {
+        return res.status(500).json(err);
+      }
+      return res.status(204).json();
+    });
+}
