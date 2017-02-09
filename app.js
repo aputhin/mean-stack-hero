@@ -14,6 +14,8 @@ app.use((req, res, next) => {
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
+app.use('/node_modules', express.static(path.join(__dirname, 'node_modules')));
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
