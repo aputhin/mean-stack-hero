@@ -22,6 +22,6 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use('/api', routes);
 
 const server = app.listen(app.get('port'), () => {
-  let port = server.address().port;
-  console.log('Magic happens on port ' + port);
+  const port = server.address().port;
+  console.log(`Magic happens on port ${port}`);
 });
