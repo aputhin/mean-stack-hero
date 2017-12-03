@@ -8,6 +8,10 @@ function HotelDataFactory($http) {
   const hotelDisplay = (id) => {
     return $http.get(`/api/hotels/${id}`).then(complete).catch(failed);
   }
+
+  const postReview = (id, review) => {
+    return $http.post(`/api/hotels/${id}/reviews`, review);
+  }
   
   const complete = response => response.data;
   const failed = error => error.statusText;
@@ -15,5 +19,6 @@ function HotelDataFactory($http) {
   return {
     hotelList,
     hotelDisplay,
+    postReview,
   }
 }
