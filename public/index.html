@@ -7,7 +7,11 @@
   </head>
 
   <body>
-    <div ng-view></div>
+    <ng-navigation></ng-navigation>
+
+    <div class="container">
+      <div ng-view></div>
+    </div>
 
     <footer class="footer">
       <div class="container">
@@ -24,10 +28,16 @@
     <script src="node_modules/jquery/dist/jquery.min.js"></script>
     <script src="node_modules/angular/angular.js"></script>
     <script src="node_modules/angular-route/angular-route.js"></script>
+    <script src="node_modules/angular-jwt/dist/angular-jwt.js"></script>
     <script src="angular-app/main.js"></script>
+    <script src="angular-app/login/login.controller.js"></script>
+    <script src="angular-app/register/register.controller.js"></script>
     <script src="angular-app/hotel-list/hotel.list.controller.js"></script>
     <script src="angular-app/hotel-display/hotel.display.controller.js"></script>
     <script src="angular-app/hotel-data/hotel.data.factory.js"></script>
+    <script src="angular-app/authentication/auth.factory.js"></script>
+    <script src="angular-app/authentication/auth.interceptor.js"></script>
+    <script src="angular-app/navigation/navigation.directive.js"></script>
     <script src="angular-app/hotel-rating/hotel.rating.directive.js"></script>
-  </body>
+  </body> 
 </html>

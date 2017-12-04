@@ -35,3 +35,4 @@ process
   });
 
 require('./models/hotels.model');
+require('./models/users.model');
